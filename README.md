@@ -26,18 +26,20 @@ python3 run.py --api-port 8002 --web-port 5175
 
 The frontend proxy automatically follows the selected API port. `LISTINGS_DB_PATH` is also respected if you want a different SQLite file.
 
-````
-
 ## Relevancy Algorithm
 
 For price `p`, target budget `b`, and listing age `d` in days:
 
 ```text
-budget_proximity = max(0, 1 - abs(p - b) / b)
-half_life_days   = 365 if no target budget is supplied, otherwise 90
-recency          = 2 ** (-max(0, d) / half_life_days)
-relevance        = 100 * (0.70 * budget_proximity + 0.30 * recency)
-````
+half_life_days = 365 if b is absent, otherwise 90
+recency = 2 ** (-max(0, d) / half_life_days)
+
+If b is supplied:
+    budget_proximity = max(0, 1 - abs(p - b) / b)
+    relevance = 100 * (0.70 * budget_proximity + 0.30 * recency)
+Otherwise:
+    relevance = 100 * recency
+```
 
 Without a target budget, `relevance = 100 * recency`, with a 365-day half-life: a listing 365 days old scores 50, and one 730 days old scores 25. With a target budget, the existing 90-day half-life applies to the recency component. Scores range from 0 to 100. An exact budget match listed 90 days ago scores 85; a listing 10% above or below that budget at the same age scores 78. This symmetric distance measures proximity to an ideal price, so it does not express a preference for cheaper homes. The 70/30 weighting makes budget fit the primary signal, while smooth recency decay avoids an arbitrary cutoff for older listings. I used a larger 365-day half-life because our most recent listing is still several months old and I wanted it to show high relevancy when accounting for recency only.
 
@@ -77,3 +79,7 @@ npm run test:e2e
 Playwright starts real backend and frontend servers on ports 8001 and 5174 and stops them afterward; leave those ports free.
 
 `npm run build --prefix frontend` type-checks the app and produces `frontend/dist`. With FastAPI running, `npm run preview --prefix frontend` previews that build locally.
+
+```
+
+```
